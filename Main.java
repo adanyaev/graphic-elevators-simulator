@@ -2,6 +2,8 @@ package com.company;
 
 import java.io.IOException;
 import java.util.ArrayList;
+
+import javafx.animation.TranslateTransition;
 import javafx.util.Duration;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.Scene;
@@ -10,6 +12,7 @@ import javafx.stage.Stage;
 import javafx.scene.Group;
 import javafx.scene.text.Text;
 import javafx.application.Application;
+import javafx.application.Platform;
 
 enum elevator_status{
     WAITING("WAITING"),
@@ -42,12 +45,20 @@ class Request{
 }
 
 public class Main extends Application {
-    static ArrayList<Elevator> elevators;
-    static int requests_frequency = 8; // заявки генерируются рандомно один раз в от 1 до requests_frequency секунд
-    static int num_floors = 7;
+    static int requests_frequency = 2; // заявки генерируются рандомно один раз в от 1 до requests_frequency секунд
+    static int num_floors = 5;
     static int num_elevators = 3;
     static int seconds_between_floors = 2;
     static int max_persons = 4;
+    static int lift_width = 70;
+    static int lift_height = 100;
+    static int space_between_lifts = 20;
+    static int window_width = num_elevators*lift_width + space_between_lifts*(num_elevators+1);
+    static int window_height = num_floors*lift_height;
+    static ArrayList<Elevator> elevators;
+    static ArrayList <Rectangle> lifts;
+    static ArrayList <Text> texts;
+    static Scene scene;
 
     public static void cls() {
         try {
@@ -86,14 +97,44 @@ public class Main extends Application {
         }
     }
 
+    public static void change_text(int id){
+        Platform.runLater(new Runnable() {
+            public void run() {
+                texts.get(id).setText(String.valueOf(elevators.get(id).requestsRunning.size()));
+            }
+        });
+    }
+
+    public static void create_animation(int id){
+        Platform.runLater(new Runnable() {
+            public void run() {
+                int offset = elevators.get(id).current_status == elevator_status.MOVING_UP ? -lift_height : lift_height;
+                TranslateTransition t = new TranslateTransition();
+                t.setDuration(Duration.seconds(seconds_between_floors));
+                t.setByY(offset);
+                t.setNode(lifts.get(id));
+                TranslateTransition t1 = new TranslateTransition();
+                t1.setDuration(Duration.seconds(seconds_between_floors));
+                t1.setByY(offset);
+                t1.setNode(texts.get(id));
+                t.play();
+                t1.play();
+            }
+        });
+    }
+
     @Override
     public void start(Stage stage) throws Exception{
-        ArrayList <Rectangle> lifts = new ArrayList <Rectangle> ();
-        int lift_width = 70;
-        int lift_height = 100;
-        int space_between_lifts = 20;
-        int window_width = num_elevators*lift_width + space_between_lifts*(num_elevators+1);
-        int window_height = num_floors*lift_height;
+        stage.setScene(scene);
+        stage.setTitle("Elevators simulator");
+        stage.setWidth(window_width + 50);
+        stage.setHeight(window_height + 50);
+        stage.show();
+    }
+
+    static void create_window(){
+        lifts = new ArrayList <Rectangle> ();
+        texts = new ArrayList <Text> ();
         Group group = new Group();
         for (int i = 0; i < num_elevators; i++){
             lifts.add(new Rectangle(space_between_lifts*(i+1) + i*lift_width, window_height - lift_height, lift_width, lift_height));
@@ -101,20 +142,19 @@ public class Main extends Application {
             lifts.get(i).setStroke(Color.BLACK);
             group.getChildren().add(lifts.get(i));
         }
-        Scene scene = new Scene(group);
-        stage.setScene(scene);
-        stage.setTitle("First Application");
-        stage.setWidth(window_width + 50);
-        stage.setHeight(window_height + 50);
-        stage.show();
-
+        for (int i = 0; i < num_elevators; i++){
+            texts.add(new Text(lifts.get(i).getX()+lift_width/2-5, lifts.get(i).getY()+lift_height/2, "0"));
+            group.getChildren().add(texts.get(i));
+        }
+        scene = new Scene(group);
     }
 
     public static void main(String[] args) {
         elevators = new ArrayList<Elevator> ();
 	    for (int i = 0; i < num_elevators; i++){
-	        elevators.add(new Elevator());
+	        elevators.add(new Elevator(i));
         }
+	    create_window();
 	    Thread [] threads = new Thread[num_elevators];
         for (int i = 0; i < num_elevators; i++){
             threads[i] = new Thread(elevators.get(i));
@@ -125,5 +165,6 @@ public class Main extends Application {
         managerThread.start();
         //consoleWriter(elevators);
         launch(args);
+
     }
 }

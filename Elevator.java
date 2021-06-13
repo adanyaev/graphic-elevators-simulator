@@ -3,6 +3,7 @@ package com.company;
 
 import java.util.ArrayList;
 import java.util.Random;
+import javafx.scene.shape.Rectangle;
 
 public class Elevator implements Runnable {
 
@@ -10,6 +11,16 @@ public class Elevator implements Runnable {
     ArrayList<Request> requestsWaiting = new ArrayList<Request>();
     ArrayList<Request> requestsRunning = new ArrayList<Request>();
     int current_floor = 0;
+    Rectangle node = null;
+    int id;
+
+    Elevator(int id){
+        this.id = id;
+    }
+
+    public void setNode(Rectangle node) {
+        this.node = node;
+    }
 
     public void newRequest(Request r){
         Random random = new Random();
@@ -22,6 +33,7 @@ public class Elevator implements Runnable {
             if (r.start == current_floor){
                 current_status = r.dir == direction.UP ? elevator_status.MOVING_UP : elevator_status.MOVING_DOWN;
                 requestsRunning.add(r);
+                Main.change_text(id);
             } else {
                 current_status = r.start > current_floor ? elevator_status.MOVING_UP : elevator_status.MOVING_DOWN;
                 requestsWaiting.add(r);
@@ -39,6 +51,8 @@ public class Elevator implements Runnable {
                     continue;
                 }
                 else {
+                    Main.create_animation(id);
+
                     Thread.sleep(Main.seconds_between_floors*1000);
                     current_floor += current_status == elevator_status.MOVING_UP ? 1 : -1;
                     ArrayList<Request> toBeDeleted = new ArrayList<Request>();
@@ -51,6 +65,7 @@ public class Elevator implements Runnable {
                     for (int i = 0; i < toBeDeleted.size(); i++){
                         requestsRunning.remove(toBeDeleted.get(i));
                     }
+                    Main.change_text(id);
                     if (requestsWaiting.size() == 0 && requestsRunning.size() == 0){
                         current_status = elevator_status.WAITING;
                         continue;
@@ -70,6 +85,7 @@ public class Elevator implements Runnable {
                             if (closest_r.start == current_floor){
                                 current_status = closest_r.dir == direction.UP ? elevator_status.MOVING_UP : elevator_status.MOVING_DOWN;
                                 requestsRunning.add(closest_r);
+                                Main.change_text(id);
                                 requestsWaiting.remove(closest_r);
                             } else {
                                 current_status = closest_r.start > current_floor ? elevator_status.MOVING_UP : elevator_status.MOVING_DOWN;
@@ -84,6 +100,7 @@ public class Elevator implements Runnable {
                                     (r.dir == direction.DOWN && current_status == elevator_status.MOVING_DOWN)){
                                 toBeDeleted.add(r);
                                 requestsRunning.add(r);
+                                Main.change_text(id);
                             }
                         }
                     }
