@@ -12,3 +12,5 @@
 *seconds_between_floors* - время, за которое лифт проезжает один этаж в секундах
 
 *max_persons* = грузоподъемность лифта
+
+![image](https://user-images.githubusercontent.com/38013055/121828559-a1805600-ccc8-11eb-8607-f15138603a7a.png)
