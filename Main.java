@@ -1,5 +1,6 @@
 package com.company;
 
+import java.io.Console;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -13,6 +14,9 @@ import javafx.scene.Group;
 import javafx.scene.text.Text;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.scene.text.Font;
+import javafx.scene.shape.Line;
+
 
 enum elevator_status{
     WAITING("WAITING"),
@@ -46,7 +50,7 @@ class Request{
 
 public class Main extends Application {
     static int requests_frequency = 2; // заявки генерируются рандомно один раз в от 1 до requests_frequency секунд
-    static int num_floors = 5;
+    static int num_floors = 7;
     static int num_elevators = 3;
     static int seconds_between_floors = 2;
     static int max_persons = 4;
@@ -55,6 +59,7 @@ public class Main extends Application {
     static int space_between_lifts = 20;
     static int window_width = num_elevators*lift_width + space_between_lifts*(num_elevators+1);
     static int window_height = num_floors*lift_height;
+    static int numbers_width = 30;
     static ArrayList<Elevator> elevators;
     static ArrayList <Rectangle> lifts;
     static ArrayList <Text> texts;
@@ -67,36 +72,36 @@ public class Main extends Application {
             System.out.println(E);
         }
     }
-
-    static void consoleWriter(ArrayList<Elevator> elevators) {
-        try {
-            while (true) {
-                cls();
-                for (int i = 0; i < elevators.size(); i++) {
-                    System.out.println("Elevator # " + (i + 1));
-                    System.out.println("Elevator status: " + elevators.get(i).current_status.getString());
-                    System.out.println("Current floor: " + elevators.get(i).current_floor + '\n');
-                    System.out.println("Waiting persons: ");
-                    for (int j = 0; j < elevators.get(i).requestsWaiting.size(); j++) {
-                        System.out.println("Person id: " + elevators.get(i).requestsWaiting.get(j).id +
-                                " Start: " + elevators.get(i).requestsWaiting.get(j).start +
-                                " Target: " + elevators.get(i).requestsWaiting.get(j).target + "   ");
+    static class consoleWriter implements Runnable {
+        public void run () {
+            try {
+                while (true) {
+                    cls();
+                    for (int i = 0; i < elevators.size(); i++) {
+                        System.out.println("Elevator # " + (i + 1));
+                        System.out.println("Elevator status: " + elevators.get(i).current_status.getString());
+                        System.out.println("Current floor: " + elevators.get(i).current_floor + '\n');
+                        System.out.println("Waiting persons: ");
+                        for (int j = 0; j < elevators.get(i).requestsWaiting.size(); j++) {
+                            System.out.println("Person id: " + elevators.get(i).requestsWaiting.get(j).id +
+                                    " Start: " + elevators.get(i).requestsWaiting.get(j).start +
+                                    " Target: " + elevators.get(i).requestsWaiting.get(j).target + "   ");
+                        }
+                        System.out.println("Running persons: ");
+                        for (int j = 0; j < elevators.get(i).requestsRunning.size(); j++) {
+                            System.out.println("Person id: " + elevators.get(i).requestsRunning.get(j).id +
+                                    " Start: " + elevators.get(i).requestsRunning.get(j).start +
+                                    " Target: " + elevators.get(i).requestsRunning.get(j).target + "   ");
+                        }
+                        System.out.println("\n");
                     }
-                    System.out.println("Running persons: ");
-                    for (int j = 0; j < elevators.get(i).requestsRunning.size(); j++) {
-                        System.out.println("Person id: " + elevators.get(i).requestsRunning.get(j).id +
-                                " Start: " + elevators.get(i).requestsRunning.get(j).start +
-                                " Target: " + elevators.get(i).requestsRunning.get(j).target + "   ");
-                    }
-                    System.out.println("\n");
+                    Thread.sleep(100);
                 }
-                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-        } catch (InterruptedException e){
-            e.printStackTrace();
         }
     }
-
     public static void change_text(int id){
         Platform.runLater(new Runnable() {
             public void run() {
@@ -136,15 +141,26 @@ public class Main extends Application {
         lifts = new ArrayList <Rectangle> ();
         texts = new ArrayList <Text> ();
         Group group = new Group();
+        for (int i = 0; i < num_floors; i++){
+            Text t = new Text (numbers_width*1/3, window_height - lift_height*i-10, String.valueOf(i));
+            t.setFont(new Font(20));
+            group.getChildren().add(t);
+        }
+        for (int i = 0; i < num_floors; i++){
+            Line t = new Line (0, window_height - lift_height*i, window_width+50, window_height - lift_height*i);
+            group.getChildren().add(t);
+        }
         for (int i = 0; i < num_elevators; i++){
-            lifts.add(new Rectangle(space_between_lifts*(i+1) + i*lift_width, window_height - lift_height, lift_width, lift_height));
+            lifts.add(new Rectangle(space_between_lifts*(i+1) + i*lift_width + numbers_width, window_height - lift_height, lift_width, lift_height));
             lifts.get(i).setFill(Color.WHITE);
             lifts.get(i).setStroke(Color.BLACK);
             group.getChildren().add(lifts.get(i));
         }
         for (int i = 0; i < num_elevators; i++){
-            texts.add(new Text(lifts.get(i).getX()+lift_width/2-5, lifts.get(i).getY()+lift_height/2, "0"));
-            group.getChildren().add(texts.get(i));
+            Text t = new Text(lifts.get(i).getX()+lift_width/2-5, lifts.get(i).getY()+lift_height/2, "0");
+            t.setFont(new Font(20));
+            texts.add(t);
+            group.getChildren().add(t);
         }
         scene = new Scene(group);
     }
@@ -163,6 +179,9 @@ public class Main extends Application {
         ElevatorsManager manager = new ElevatorsManager(elevators);
         Thread managerThread = new Thread(manager);
         managerThread.start();
+        consoleWriter writer = new consoleWriter();
+        Thread writerThread = new Thread(writer);
+        writerThread.start();
         //consoleWriter(elevators);
         launch(args);
 
